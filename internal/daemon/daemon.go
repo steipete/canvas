@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -65,6 +66,22 @@ func Run(cfg Config) error {
 	actualPort := httpLn.Addr().(*net.TCPAddr).Port
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d/", actualPort)
 
+	var controllerPtr atomic.Pointer[browser.Controller]
+	staticHandler.SetWelcome(func() web.WelcomeData {
+		c := controllerPtr.Load()
+		out := web.WelcomeData{
+			ServeDir:   cfg.ServeDir,
+			HTTPURL:    baseURL,
+			AutoReload: cfg.Watch,
+			AppMode:    cfg.App && !cfg.Headless,
+		}
+		if c != nil {
+			out.DevToolsPort = c.DevToolsPort()
+			out.DevToolsWSURL = c.DevToolsWSURL()
+		}
+		return out
+	})
+
 	// Browser controller.
 	profileDir := filepath.Join(cfg.StateDir, "chrome-profile")
 	_ = os.RemoveAll(profileDir)
@@ -80,12 +97,16 @@ func Run(cfg Config) error {
 		Headless:     cfg.Headless,
 		UserDataDir:  profileDir,
 		DevToolsPort: cfg.DevToolsPort,
+		StartURL:     baseURL,
+		AppMode:      cfg.App && !cfg.Headless,
+		WindowSize:   cfg.WindowSize,
 	})
 	if err != nil {
 		_ = httpSrv.Shutdown(context.Background())
 		return fmt.Errorf("launch browser: %w", err)
 	}
 	defer controller.Close()
+	controllerPtr.Store(controller)
 
 	if _, _, err := controller.Navigate(rootCtx, baseURL); err != nil {
 		return fmt.Errorf("navigate %s: %w", baseURL, err)

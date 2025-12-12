@@ -46,3 +46,35 @@ func devToolsWebSocketURL(ctx context.Context, port int) (string, error) {
 		time.Sleep(100 * time.Millisecond)
 	}
 }
+
+type DevToolsTarget struct {
+	ID                   string `json:"id"`
+	Type                 string `json:"type"`
+	URL                  string `json:"url"`
+	WebSocketDebuggerURL string `json:"webSocketDebuggerUrl"`
+}
+
+func DevToolsTargets(port int) ([]DevToolsTarget, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	return devToolsTargets(ctx, port)
+}
+
+func devToolsTargets(ctx context.Context, port int) ([]DevToolsTarget, error) {
+	url := fmt.Sprintf("http://127.0.0.1:%d/json/list", port)
+	client := &http.Client{Timeout: 2 * time.Second}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("devtools targets: %s", resp.Status)
+	}
+	var out []DevToolsTarget
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

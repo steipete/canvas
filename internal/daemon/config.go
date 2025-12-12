@@ -6,6 +6,8 @@ type Config struct {
 	HTTPPort     int
 	DevToolsPort int
 	Headless     bool
+	App          bool
+	WindowSize   string
 	BrowserBin   string
 	TempDir      bool
 	Watch        bool

@@ -38,6 +38,34 @@ func TestStaticHandler_ServesIndex(t *testing.T) {
 	}
 }
 
+func TestStaticHandler_WelcomeWhenMissingRootIndex(t *testing.T) {
+	dir := t.TempDir()
+	h, err := NewStaticHandler(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.SetWelcome(func() WelcomeData {
+		return WelcomeData{ServeDir: dir, HTTPURL: "http://127.0.0.1:1/"}
+	})
+
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	resp, err := http.Get(srv.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, body=%q", resp.StatusCode, string(b))
+	}
+	if !strings.Contains(string(b), "Hello Canvas") && !strings.Contains(string(b), "Canvas") {
+		t.Fatalf("expected welcome content: %q", string(b))
+	}
+}
+
 func TestStaticHandler_ServesSubdirIndex(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "yolo"), 0o755); err != nil {

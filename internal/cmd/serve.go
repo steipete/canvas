@@ -16,6 +16,8 @@ func newServeCmd(root *rootFlags) *cobra.Command {
 		port         int
 		devToolsPort int
 		headless     bool
+		app          bool
+		windowSize   string
 		browserBin   string
 	)
 
@@ -52,6 +54,8 @@ func newServeCmd(root *rootFlags) *cobra.Command {
 				HTTPPort:     port,
 				DevToolsPort: devToolsPort,
 				Headless:     headless,
+				App:          app,
+				WindowSize:   windowSize,
 				BrowserBin:   browserBin,
 				TempDir:      tempDir,
 				Watch:        true,
@@ -68,6 +72,8 @@ func newServeCmd(root *rootFlags) *cobra.Command {
 	cmd.Flags().IntVar(&port, "port", 0, "HTTP port (0 picks a random free port)")
 	cmd.Flags().IntVar(&devToolsPort, "devtools-port", 0, "DevTools remote debugging port (0 picks a random free port)")
 	cmd.Flags().BoolVar(&headless, "headless", false, "Run browser headless")
+	cmd.Flags().BoolVar(&app, "app", true, "Launch browser in app mode (chromeless window)")
+	cmd.Flags().StringVar(&windowSize, "window-size", "1280,720", "Browser window size, e.g. 1280,720")
 	cmd.Flags().StringVar(&browserBin, "browser-bin", "", "Chromium/Chrome binary path (optional)")
 	return cmd
 }

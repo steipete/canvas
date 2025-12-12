@@ -6,6 +6,7 @@
 - Launches a controlled Chromium tab (single-tab).
 - Exposes simple CLI commands to navigate, run JavaScript, query/modify DOM, take screenshots, and reload.
 - Auto-reloads the tab when files on disk change.
+- When the served directory has no `index.html` yet, Canvas shows a built-in welcome page.
 
 This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it in a real browser, validate it via DOM/JS queries, and capture screenshots.
 
@@ -31,6 +32,12 @@ Start a background session (headed by default):
 
 ```sh
 canvas start
+```
+
+If you prefer a short “build + start” shortcut (requires `pnpm`):
+
+```sh
+pnpm canvas
 ```
 
 Show status (use `--json` for agent-friendly output):
@@ -97,6 +104,8 @@ The served directory is mapped directly to URL paths:
 
 Directory listings are not enabled.
 
+If `/` doesn’t have an `index.html` yet, Canvas serves a built-in welcome page instead of a plain 404 (helpful for first run).
+
 ## Commands
 
 - `canvas start`: daemonizes (writes session info under the state dir)
@@ -134,7 +143,7 @@ Debug logging for the browser controller:
 
 ## Platform
 
-Primary target is macOS (headed mode is the default). Other platforms can build, but you’ll likely want to pass `--browser-bin` explicitly.
+Primary target is macOS (headed mode is the default). By default, the headed browser is launched in app mode (chromeless) — disable with `--app=false`.
 
 ## Roadmap
 

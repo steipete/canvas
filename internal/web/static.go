@@ -10,6 +10,7 @@ import (
 
 type StaticHandler struct {
 	rootAbs string
+	welcome WelcomeProvider
 }
 
 func NewStaticHandler(root string) (*StaticHandler, error) {
@@ -18,6 +19,10 @@ func NewStaticHandler(root string) (*StaticHandler, error) {
 		return nil, err
 	}
 	return &StaticHandler{rootAbs: filepath.Clean(abs)}, nil
+}
+
+func (h *StaticHandler) SetWelcome(p WelcomeProvider) {
+	h.welcome = p
 }
 
 func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +42,14 @@ func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	info, err := os.Stat(target)
 	if err == nil && info.IsDir() {
-		h.serveIndex(w, r, target)
+		if h.serveIndex(w, r, target) {
+			return
+		}
+		if clean == "/" && h.welcome != nil {
+			h.serveWelcome(w, r)
+			return
+		}
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -46,22 +58,25 @@ func (h *StaticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if info.IsDir() {
-		h.serveIndex(w, r, target)
+		if h.serveIndex(w, r, target) {
+			return
+		}
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
 	http.ServeFile(w, r, target)
 }
 
-func (h *StaticHandler) serveIndex(w http.ResponseWriter, r *http.Request, dir string) {
+func (h *StaticHandler) serveIndex(w http.ResponseWriter, r *http.Request, dir string) bool {
 	for _, name := range []string{"index.html", "index.htm"} {
 		p := filepath.Join(dir, name)
 		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
 			http.ServeFile(w, r, p)
-			return
+			return true
 		}
 	}
-	http.Error(w, "not found", http.StatusNotFound)
+	return false
 }
 
 func withinRoot(rootAbs, targetAbs string) bool {
@@ -70,4 +85,11 @@ func withinRoot(rootAbs, targetAbs string) bool {
 	}
 	prefix := rootAbs + string(os.PathSeparator)
 	return strings.HasPrefix(targetAbs, prefix)
+}
+
+func (h *StaticHandler) serveWelcome(w http.ResponseWriter, r *http.Request) {
+	data := h.welcome()
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(RenderWelcomeHTML(data))
 }
