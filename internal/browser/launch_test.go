@@ -48,4 +48,3 @@ func TestBuildLaunchArgs_HeadlessUsesURL(t *testing.T) {
 		t.Fatalf("expected --headless=new in args: %v", args)
 	}
 }
-

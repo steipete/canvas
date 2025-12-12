@@ -13,4 +13,3 @@ func TestStartCmd_StealthFlagDefault(t *testing.T) {
 		t.Fatalf("expected --stealth default true")
 	}
 }
-
