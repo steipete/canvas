@@ -31,6 +31,7 @@ func newRootCmd() *cobra.Command {
 		newStatusCmd(&flags),
 		newStopCmd(&flags),
 		newFocusCmd(&flags),
+		newDevToolsCmd(&flags),
 		newGotoCmd(&flags),
 		newEvalCmd(&flags),
 		newReloadCmd(&flags),

@@ -13,16 +13,18 @@ const (
 )
 
 type Session struct {
-	PID        int       `json:"pid"`
-	StartedAt  time.Time `json:"started_at"`
-	Dir        string    `json:"dir"`
-	HTTPAddr   string    `json:"http_addr"`
-	HTTPPort   int       `json:"http_port"`
-	SocketPath string    `json:"socket_path"`
-	Token      string    `json:"token"`
-	Headless   bool      `json:"headless"`
-	BrowserPID int       `json:"browser_pid,omitempty"`
-	BrowserBin string    `json:"browser_bin,omitempty"`
+	PID           int       `json:"pid"`
+	StartedAt     time.Time `json:"started_at"`
+	Dir           string    `json:"dir"`
+	HTTPAddr      string    `json:"http_addr"`
+	HTTPPort      int       `json:"http_port"`
+	SocketPath    string    `json:"socket_path"`
+	Token         string    `json:"token"`
+	Headless      bool      `json:"headless"`
+	BrowserPID    int       `json:"browser_pid,omitempty"`
+	DevToolsPort  int       `json:"devtools_port,omitempty"`
+	DevToolsWSURL string    `json:"devtools_ws_url,omitempty"`
+	BrowserBin    string    `json:"browser_bin,omitempty"`
 }
 
 func Dir(stateDir string) string {

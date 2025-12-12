@@ -84,6 +84,7 @@ Directory listings are not enabled.
 - `canvas status`: shows whether a session is running
 - `canvas stop` (alias: `close`): stops server + closes controlled browser
 - `canvas focus`: brings the controlled browser window to the front (macOS; no-op in headless)
+- `canvas devtools`: prints DevTools websocket URL (or just the port)
 - `canvas goto`: navigate to a path (e.g. `/yolo`) or full URL
 - `canvas eval`: evaluate JavaScript
 - `canvas dom`: query DOM by CSS selector

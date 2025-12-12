@@ -48,6 +48,11 @@ func newStatusCmd(root *rootFlags) *cobra.Command {
 			fmt.Fprintf(os.Stdout, "running: http://%s:%d/\n", st.HTTPAddr, st.HTTPPort)
 			fmt.Fprintf(os.Stdout, "dir: %s\n", st.Dir)
 			fmt.Fprintf(os.Stdout, "url: %s\n", st.CurrentURL)
+			if st.DevToolsWSURL != "" {
+				fmt.Fprintf(os.Stdout, "devtools: %s\n", st.DevToolsWSURL)
+			} else if st.DevToolsPort != 0 {
+				fmt.Fprintf(os.Stdout, "devtools-port: %d\n", st.DevToolsPort)
+			}
 			return nil
 		},
 	}

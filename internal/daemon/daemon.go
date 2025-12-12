@@ -76,9 +76,10 @@ func Run(cfg Config) error {
 	defer cancel()
 
 	controller, err := browser.New(rootCtx, browser.Options{
-		BrowserBin:  cfg.BrowserBin,
-		Headless:    cfg.Headless,
-		UserDataDir: profileDir,
+		BrowserBin:   cfg.BrowserBin,
+		Headless:     cfg.Headless,
+		UserDataDir:  profileDir,
+		DevToolsPort: cfg.DevToolsPort,
 	})
 	if err != nil {
 		_ = httpSrv.Shutdown(context.Background())
@@ -109,6 +110,8 @@ func Run(cfg Config) error {
 			Title:         title,
 			Headless:      cfg.Headless,
 			BrowserPID:    controller.BrowserPID(),
+			DevToolsPort:  controller.DevToolsPort(),
+			DevToolsWSURL: controller.DevToolsWSURL(),
 			BrowserBinary: controller.BrowserBinary(),
 		}
 		rpcWriteJSON(w, http.StatusOK, out)
@@ -218,16 +221,18 @@ func Run(cfg Config) error {
 	go func() { _ = rpcSrv.Serve(unixLn) }()
 
 	sess := state.Session{
-		PID:        os.Getpid(),
-		StartedAt:  time.Now(),
-		Dir:        cfg.ServeDir,
-		HTTPAddr:   "127.0.0.1",
-		HTTPPort:   actualPort,
-		SocketPath: socketPath,
-		Token:      token,
-		Headless:   cfg.Headless,
-		BrowserPID: controller.BrowserPID(),
-		BrowserBin: controller.BrowserBinary(),
+		PID:           os.Getpid(),
+		StartedAt:     time.Now(),
+		Dir:           cfg.ServeDir,
+		HTTPAddr:      "127.0.0.1",
+		HTTPPort:      actualPort,
+		SocketPath:    socketPath,
+		Token:         token,
+		Headless:      cfg.Headless,
+		BrowserPID:    controller.BrowserPID(),
+		DevToolsPort:  controller.DevToolsPort(),
+		DevToolsWSURL: controller.DevToolsWSURL(),
+		BrowserBin:    controller.BrowserBinary(),
 	}
 	if err := state.Save(cfg.StateDir, sess); err != nil {
 		return fmt.Errorf("write session: %w", err)

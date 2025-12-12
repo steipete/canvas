@@ -11,6 +11,8 @@ type StatusResponse struct {
 	Title         string `json:"title,omitempty"`
 	Headless      bool   `json:"headless,omitempty"`
 	BrowserPID    int    `json:"browser_pid,omitempty"`
+	DevToolsPort  int    `json:"devtools_port,omitempty"`
+	DevToolsWSURL string `json:"devtools_ws_url,omitempty"`
 	BrowserBinary string `json:"browser_bin,omitempty"`
 	Error         string `json:"error,omitempty"`
 }

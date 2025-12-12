@@ -17,10 +17,11 @@ import (
 
 func newStartCmd(root *rootFlags) *cobra.Command {
 	var (
-		dir        string
-		port       int
-		headless   bool
-		browserBin string
+		dir          string
+		port         int
+		devToolsPort int
+		headless     bool
+		browserBin   string
 	)
 
 	cmd := &cobra.Command{
@@ -44,6 +45,11 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 					}
 					fmt.Fprintf(os.Stdout, "running: http://%s:%d/\n", st.HTTPAddr, st.HTTPPort)
 					fmt.Fprintf(os.Stdout, "dir: %s\n", st.Dir)
+					if st.DevToolsWSURL != "" {
+						fmt.Fprintf(os.Stdout, "devtools: %s\n", st.DevToolsWSURL)
+					} else if st.DevToolsPort != 0 {
+						fmt.Fprintf(os.Stdout, "devtools-port: %d\n", st.DevToolsPort)
+					}
 					return nil
 				}
 			}
@@ -78,6 +84,7 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 				"--state-dir", stateDir,
 				"--dir", dir,
 				"--port", fmt.Sprintf("%d", port),
+				"--devtools-port", fmt.Sprintf("%d", devToolsPort),
 			}
 			if headless {
 				args2 = append(args2, "--headless")
@@ -99,7 +106,7 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 				return err
 			}
 
-			sess, err := awaitDaemonReady(stateDir, 8*time.Second)
+			sess, err := awaitDaemonReady(stateDir, 15*time.Second)
 			if err != nil {
 				return fmt.Errorf("%w (see %s)", err, logPath)
 			}
@@ -114,12 +121,18 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 			}
 			fmt.Fprintf(os.Stdout, "running: http://%s:%d/\n", st.HTTPAddr, st.HTTPPort)
 			fmt.Fprintf(os.Stdout, "dir: %s\n", st.Dir)
+			if st.DevToolsWSURL != "" {
+				fmt.Fprintf(os.Stdout, "devtools: %s\n", st.DevToolsWSURL)
+			} else if st.DevToolsPort != 0 {
+				fmt.Fprintf(os.Stdout, "devtools-port: %d\n", st.DevToolsPort)
+			}
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&dir, "dir", "", "Directory to serve (defaults to a temporary directory)")
 	cmd.Flags().IntVar(&port, "port", 0, "HTTP port (0 picks a random free port)")
+	cmd.Flags().IntVar(&devToolsPort, "devtools-port", 0, "DevTools remote debugging port (0 picks a random free port)")
 	cmd.Flags().BoolVar(&headless, "headless", false, "Run browser headless")
 	cmd.Flags().StringVar(&browserBin, "browser-bin", "", "Chromium/Chrome binary path (optional)")
 

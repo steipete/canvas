@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"sync"
 
@@ -12,19 +13,22 @@ import (
 )
 
 type Controller struct {
-	mu         sync.Mutex
-	allocCtx   context.Context
-	tabCtx     context.Context
-	cancelAll  context.CancelFunc
-	browserBin string
-	headless   bool
-	browserPID int
+	mu            sync.Mutex
+	allocCtx      context.Context
+	tabCtx        context.Context
+	cancelAll     context.CancelFunc
+	browserBin    string
+	headless      bool
+	browserPID    int
+	devToolsPort  int
+	devToolsWSURL string
 }
 
 type Options struct {
-	BrowserBin  string
-	Headless    bool
-	UserDataDir string
+	BrowserBin   string
+	Headless     bool
+	UserDataDir  string
+	DevToolsPort int
 }
 
 func New(ctx context.Context, opts Options) (*Controller, error) {
@@ -37,10 +41,21 @@ func New(ctx context.Context, opts Options) (*Controller, error) {
 		}
 	}
 
+	devToolsPort := opts.DevToolsPort
+	if devToolsPort == 0 {
+		p, err := pickFreeLocalPort()
+		if err != nil {
+			return nil, err
+		}
+		devToolsPort = p
+	}
+
 	allocOpts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	allocOpts = append(allocOpts,
 		chromedp.ExecPath(bin),
 		chromedp.Flag("headless", opts.Headless),
+		chromedp.Flag("remote-debugging-address", "127.0.0.1"),
+		chromedp.Flag("remote-debugging-port", fmt.Sprintf("%d", devToolsPort)),
 		chromedp.Flag("disable-background-networking", true),
 		chromedp.Flag("disable-default-apps", true),
 		chromedp.Flag("disable-extensions", true),
@@ -65,11 +80,12 @@ func New(ctx context.Context, opts Options) (*Controller, error) {
 	}
 
 	c := &Controller{
-		allocCtx:   allocCtx,
-		tabCtx:     tabCtx,
-		cancelAll:  allCancel,
-		browserBin: bin,
-		headless:   opts.Headless,
+		allocCtx:     allocCtx,
+		tabCtx:       tabCtx,
+		cancelAll:    allCancel,
+		browserBin:   bin,
+		headless:     opts.Headless,
+		devToolsPort: devToolsPort,
 	}
 
 	// Ensure the browser is actually up.
@@ -84,12 +100,26 @@ func New(ctx context.Context, opts Options) (*Controller, error) {
 	}
 	c.browserPID = chromedp.FromContext(c.tabCtx).Browser.Process().Pid
 
+	wsURL, _ := DevToolsWebSocketURL(devToolsPort)
+	c.devToolsWSURL = wsURL
+
 	return c, nil
 }
 
 func (c *Controller) BrowserBinary() string { return c.browserBin }
 func (c *Controller) Headless() bool        { return c.headless }
 func (c *Controller) BrowserPID() int       { return c.browserPID }
+func (c *Controller) DevToolsPort() int     { return c.devToolsPort }
+func (c *Controller) DevToolsWSURL() string { return c.devToolsWSURL }
+
+func pickFreeLocalPort() (int, error) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	defer ln.Close()
+	return ln.Addr().(*net.TCPAddr).Port, nil
+}
 
 func (c *Controller) Close() error {
 	c.mu.Lock()
