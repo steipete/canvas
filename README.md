@@ -136,3 +136,4 @@ Primary target is macOS (headed mode is the default). Other platforms can build,
 
 - Attach to an existing Chrome/Chromium session (instead of always launching our own).
 - Screenshot options: no viewport sizing, full-page vs viewport toggle, JPEG, clip rect, DPR control.
+- File server features: no SPA fallback, no custom headers, no directory listing toggle, no 404 page.
