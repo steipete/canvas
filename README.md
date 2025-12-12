@@ -34,6 +34,12 @@ Start a background session (headed by default):
 canvas start
 ```
 
+Restart the session (useful after updating Canvas, or to relaunch Chrome):
+
+```sh
+canvas start --restart
+```
+
 If you prefer a short “build + start” shortcut (requires `pnpm`):
 
 ```sh

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "mkdir -p bin && go build -o bin/canvas ./cmd/canvas",
-    "canvas": "pnpm -s build && ./bin/canvas start",
+    "canvas": "pnpm -s build && ./bin/canvas start --restart",
     "canvas:serve": "pnpm -s build && ./bin/canvas serve",
     "canvas:stop": "pnpm -s build && ./bin/canvas stop || true",
     "canvas:status": "pnpm -s build && ./bin/canvas status",

@@ -25,6 +25,7 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 		windowSize   string
 		browserBin   string
 		stealth      bool
+		restart      bool
 	)
 
 	cmd := &cobra.Command{
@@ -36,13 +37,35 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 				return err
 			}
 
-			// If already running, just report status.
+			// If already running, just report status (unless restarting).
 			if s, err := state.Load(stateDir); err == nil && s.SocketPath != "" {
 				c := rpc.NewUnixClient(s.SocketPath, s.Token)
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 				st, stErr := c.Status(ctx)
 				cancel()
 				if stErr == nil && st.Running {
+					if restart {
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+						_, _ = c.Stop(ctx)
+						cancel()
+						_ = state.Remove(stateDir)
+					} else {
+						if root.jsonOutput {
+							return printJSON(st)
+						}
+						fmt.Fprintf(os.Stdout, "running: http://%s:%d/\n", st.HTTPAddr, st.HTTPPort)
+						fmt.Fprintf(os.Stdout, "dir: %s\n", st.Dir)
+						if st.DevToolsWSURL != "" {
+							fmt.Fprintf(os.Stdout, "devtools: %s\n", st.DevToolsWSURL)
+						} else if st.DevToolsPort != 0 {
+							fmt.Fprintf(os.Stdout, "devtools-port: %d\n", st.DevToolsPort)
+						}
+						return nil
+					}
+				} else if restart {
+					// Stale session; remove and proceed.
+					_ = state.Remove(stateDir)
+				} else {
 					if root.jsonOutput {
 						return printJSON(st)
 					}
@@ -102,13 +125,7 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 				args2 = append(args2, "--temp-dir")
 			}
 
-			proc := exec.Command(os.Args[0], args2...)
-			proc.Stdout = logFile
-			proc.Stderr = logFile
-			proc.Stdin = nil
-			proc.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-			if err := proc.Start(); err != nil {
+			if err := spawnDaemon(os.Args[0], args2, logFile); err != nil {
 				return err
 			}
 
@@ -144,6 +161,16 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 	cmd.Flags().BoolVar(&stealth, "stealth", true, "Best-effort automation detection reduction")
 	cmd.Flags().StringVar(&windowSize, "window-size", "1280,720", "Browser window size, e.g. 1280,720")
 	cmd.Flags().StringVar(&browserBin, "browser-bin", "", "Chromium/Chrome binary path (optional)")
+	cmd.Flags().BoolVar(&restart, "restart", false, "Restart if already running")
 
 	return cmd
+}
+
+var spawnDaemon = func(bin string, args []string, logFile *os.File) error {
+	proc := exec.Command(bin, args...)
+	proc.Stdout = logFile
+	proc.Stderr = logFile
+	proc.Stdin = nil
+	proc.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	return proc.Start()
 }
