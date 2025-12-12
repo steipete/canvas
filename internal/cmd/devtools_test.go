@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -18,7 +17,7 @@ func TestDevToolsCommand_JSON(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("CANVAS_STATE_DIR", stateDir)
 
-	socketPath := stateDir + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -76,27 +75,4 @@ func TestDevToolsCommand_JSON(t *testing.T) {
 	if out["devtools_ws_url"] != "ws://127.0.0.1:5555/devtools/browser/abc" {
 		t.Fatalf("unexpected devtools_ws_url: %#v", out["devtools_ws_url"])
 	}
-}
-
-func captureStdout(w *bytes.Buffer) (func() error, error) {
-	old := os.Stdout
-	r, pw, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	os.Stdout = pw
-
-	done := make(chan struct{})
-	go func() {
-		_, _ = w.ReadFrom(r)
-		_ = r.Close()
-		close(done)
-	}()
-
-	return func() error {
-		_ = pw.Close()
-		os.Stdout = old
-		<-done
-		return nil
-	}, nil
 }

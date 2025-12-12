@@ -17,7 +17,7 @@ func TestDomAllCommand_JSON(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("CANVAS_STATE_DIR", stateDir)
 
-	socketPath := stateDir + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +75,7 @@ func TestDomClickCommand_TextOK(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("CANVAS_STATE_DIR", stateDir)
 
-	socketPath := stateDir + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +124,7 @@ func TestDomAttrCommand_JSONNull(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("CANVAS_STATE_DIR", stateDir)
 
-	socketPath := stateDir + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -177,7 +177,7 @@ func TestDomWaitCommand_TextOK(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("CANVAS_STATE_DIR", stateDir)
 
-	socketPath := stateDir + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
@@ -226,7 +226,7 @@ func TestDomTypeCommand_TextOK(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("CANVAS_STATE_DIR", stateDir)
 
-	socketPath := stateDir + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)

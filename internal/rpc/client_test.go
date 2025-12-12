@@ -10,7 +10,7 @@ import (
 )
 
 func TestClientStatus_DevToolsFields(t *testing.T) {
-	socketPath := t.TempDir() + "/rpc.sock"
+	socketPath := shortSocketPath(t)
 	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
