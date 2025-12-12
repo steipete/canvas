@@ -55,8 +55,12 @@ canvas goto /yolo
 DOM + JS:
 
 ```sh
+# Backward-compatible shorthand (equivalent to `canvas dom query ...`)
 canvas dom "#app" --mode outer_html
 canvas dom "#title" --mode text
+
+# Explicit form
+canvas dom query "#app" --mode outer_html
 canvas eval "document.title"
 ```
 
