@@ -135,3 +135,4 @@ Primary target is macOS (headed mode is the default). Other platforms can build,
 ## Roadmap
 
 - Attach to an existing Chrome/Chromium session (instead of always launching our own).
+- Screenshot options: no viewport sizing, full-page vs viewport toggle, JPEG, clip rect, DPR control.
