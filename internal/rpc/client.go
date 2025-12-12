@@ -101,6 +101,36 @@ func (c *Client) Dom(ctx context.Context, selector, mode string) (DomResponse, e
 	return out, err
 }
 
+func (c *Client) DomAll(ctx context.Context, selector, mode string) (DomAllResponse, error) {
+	var out DomAllResponse
+	err := c.doJSON(ctx, http.MethodPost, "/dom/all", DomAllRequest{Selector: selector, Mode: mode}, &out)
+	return out, err
+}
+
+func (c *Client) DomAttr(ctx context.Context, selector, name string) (DomAttrResponse, error) {
+	var out DomAttrResponse
+	err := c.doJSON(ctx, http.MethodPost, "/dom/attr", DomAttrRequest{Selector: selector, Name: name}, &out)
+	return out, err
+}
+
+func (c *Client) DomClick(ctx context.Context, selector string) (DomClickResponse, error) {
+	var out DomClickResponse
+	err := c.doJSON(ctx, http.MethodPost, "/dom/click", DomClickRequest{Selector: selector}, &out)
+	return out, err
+}
+
+func (c *Client) DomType(ctx context.Context, selector, text string, clear bool) (DomTypeResponse, error) {
+	var out DomTypeResponse
+	err := c.doJSON(ctx, http.MethodPost, "/dom/type", DomTypeRequest{Selector: selector, Text: text, Clear: clear}, &out)
+	return out, err
+}
+
+func (c *Client) DomWait(ctx context.Context, selector, state string, timeoutMS int) (DomWaitResponse, error) {
+	var out DomWaitResponse
+	err := c.doJSON(ctx, http.MethodPost, "/dom/wait", DomWaitRequest{Selector: selector, State: state, TimeoutMS: timeoutMS}, &out)
+	return out, err
+}
+
 func (c *Client) Screenshot(ctx context.Context, selector string) (ScreenshotResponse, error) {
 	var out ScreenshotResponse
 	err := c.doJSON(ctx, http.MethodPost, "/screenshot", ScreenshotRequest{Selector: selector, Format: "png"}, &out)

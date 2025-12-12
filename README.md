@@ -54,6 +54,16 @@ canvas dom "#title" --mode text
 canvas eval "document.title"
 ```
 
+DOM interactions:
+
+```sh
+canvas dom all "li" --mode text
+canvas dom attr "#btn" "aria-label"
+canvas dom click "#btn"
+canvas dom type "#search" "hello" --clear
+canvas dom wait "#result" --state visible --timeout 10s
+```
+
 Screenshots:
 
 ```sh
@@ -87,7 +97,7 @@ Directory listings are not enabled.
 - `canvas devtools`: prints DevTools websocket URL (or just the port)
 - `canvas goto`: navigate to a path (e.g. `/yolo`) or full URL
 - `canvas eval`: evaluate JavaScript
-- `canvas dom`: query DOM by CSS selector
+- `canvas dom`: DOM utilities (`query`, `all`, `attr`, `click`, `type`, `wait`)
 - `canvas screenshot`: capture a PNG screenshot (full page or selector)
 - `canvas reload`: reload the page
 

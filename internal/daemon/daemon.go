@@ -182,6 +182,89 @@ func Run(cfg Config) error {
 		rpcWriteJSON(w, http.StatusOK, rpc.DomResponse{Selector: req.Selector, Mode: mode, Value: val})
 	})
 
+	rpch.Mux.HandleFunc("/dom/all", func(w http.ResponseWriter, r *http.Request) {
+		var req rpc.DomAllRequest
+		if err := rpcReadJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		mode := req.Mode
+		if mode == "" {
+			mode = "outer_html"
+		}
+		vals, err := controller.QueryAll(r.Context(), req.Selector, mode)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rpcWriteJSON(w, http.StatusOK, rpc.DomAllResponse{Selector: req.Selector, Mode: mode, Values: vals})
+	})
+
+	rpch.Mux.HandleFunc("/dom/attr", func(w http.ResponseWriter, r *http.Request) {
+		var req rpc.DomAttrRequest
+		if err := rpcReadJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		val, err := controller.Attr(r.Context(), req.Selector, req.Name)
+		if err != nil {
+			if err.Error() == "element not found" {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rpcWriteJSON(w, http.StatusOK, rpc.DomAttrResponse{Selector: req.Selector, Name: req.Name, Value: val})
+	})
+
+	rpch.Mux.HandleFunc("/dom/click", func(w http.ResponseWriter, r *http.Request) {
+		var req rpc.DomClickRequest
+		if err := rpcReadJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := controller.Click(r.Context(), req.Selector); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rpcWriteJSON(w, http.StatusOK, rpc.DomClickResponse{OK: true})
+	})
+
+	rpch.Mux.HandleFunc("/dom/type", func(w http.ResponseWriter, r *http.Request) {
+		var req rpc.DomTypeRequest
+		if err := rpcReadJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := controller.Type(r.Context(), req.Selector, req.Text, req.Clear); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rpcWriteJSON(w, http.StatusOK, rpc.DomTypeResponse{OK: true})
+	})
+
+	rpch.Mux.HandleFunc("/dom/wait", func(w http.ResponseWriter, r *http.Request) {
+		var req rpc.DomWaitRequest
+		if err := rpcReadJSON(r, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		state := req.State
+		if state == "" {
+			state = "visible"
+		}
+		timeout := 10 * time.Second
+		if req.TimeoutMS > 0 {
+			timeout = time.Duration(req.TimeoutMS) * time.Millisecond
+		}
+		if err := controller.Wait(r.Context(), req.Selector, state, timeout); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		rpcWriteJSON(w, http.StatusOK, rpc.DomWaitResponse{OK: true, State: state})
+	})
+
 	rpch.Mux.HandleFunc("/screenshot", func(w http.ResponseWriter, r *http.Request) {
 		var req rpc.ScreenshotRequest
 		if err := rpcReadJSON(r, &req); err != nil {

@@ -49,6 +49,57 @@ type DomResponse struct {
 	Value    string `json:"value"`
 }
 
+type DomAllRequest struct {
+	Selector string `json:"selector"`
+	Mode     string `json:"mode"` // "outer_html" | "text"
+}
+
+type DomAllResponse struct {
+	Selector string   `json:"selector"`
+	Mode     string   `json:"mode"`
+	Values   []string `json:"values"`
+}
+
+type DomAttrRequest struct {
+	Selector string `json:"selector"`
+	Name     string `json:"name"`
+}
+
+type DomAttrResponse struct {
+	Selector string  `json:"selector"`
+	Name     string  `json:"name"`
+	Value    *string `json:"value"`
+}
+
+type DomClickRequest struct {
+	Selector string `json:"selector"`
+}
+
+type DomClickResponse struct {
+	OK bool `json:"ok"`
+}
+
+type DomTypeRequest struct {
+	Selector string `json:"selector"`
+	Text     string `json:"text"`
+	Clear    bool   `json:"clear,omitempty"`
+}
+
+type DomTypeResponse struct {
+	OK bool `json:"ok"`
+}
+
+type DomWaitRequest struct {
+	Selector  string `json:"selector"`
+	State     string `json:"state"`      // "visible" | "hidden" | "ready" | "present" | "gone"
+	TimeoutMS int    `json:"timeout_ms"` // 0 => default
+}
+
+type DomWaitResponse struct {
+	OK    bool   `json:"ok"`
+	State string `json:"state"`
+}
+
 type ScreenshotRequest struct {
 	Selector string `json:"selector,omitempty"`
 	Format   string `json:"format,omitempty"` // "png" only for now

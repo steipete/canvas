@@ -7,7 +7,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/chromedp/chromedp"
 )
@@ -231,4 +233,133 @@ func (c *Controller) Title(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return title, nil
+}
+
+func (c *Controller) QueryAll(ctx context.Context, selector, mode string) ([]string, error) {
+	if selector == "" {
+		return nil, errors.New("missing selector")
+	}
+	if mode == "" {
+		mode = "outer_html"
+	}
+
+	exprSel := strconv.Quote(selector)
+	var expr string
+	switch mode {
+	case "outer_html":
+		expr = fmt.Sprintf(`Array.from(document.querySelectorAll(%s)).map(n => n.outerHTML)`, exprSel)
+	case "text":
+		expr = fmt.Sprintf(`Array.from(document.querySelectorAll(%s)).map(n => (n.textContent ?? ""))`, exprSel)
+	default:
+		return nil, errors.New("unknown mode")
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
+	defer cancel()
+
+	var out []string
+	if err := chromedp.Run(runCtx, chromedp.Evaluate(expr, &out)); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *Controller) Attr(ctx context.Context, selector, name string) (*string, error) {
+	if selector == "" {
+		return nil, errors.New("missing selector")
+	}
+	if name == "" {
+		return nil, errors.New("missing name")
+	}
+
+	exprSel := strconv.Quote(selector)
+	exprName := strconv.Quote(name)
+	expr := fmt.Sprintf(`(() => { const el = document.querySelector(%s); if (!el) return {"__canvas":"not_found"}; return el.getAttribute(%s); })()`, exprSel, exprName)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
+	defer cancel()
+
+	var out any
+	if err := chromedp.Run(runCtx, chromedp.Evaluate(expr, &out)); err != nil {
+		return nil, err
+	}
+	switch v := out.(type) {
+	case string:
+		return &v, nil
+	case nil:
+		return nil, nil
+	case map[string]any:
+		return nil, errors.New("element not found")
+	default:
+		return nil, fmt.Errorf("unexpected attr result type %T", out)
+	}
+}
+
+func (c *Controller) Click(ctx context.Context, selector string) error {
+	if selector == "" {
+		return errors.New("missing selector")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
+	defer cancel()
+	return chromedp.Run(runCtx, chromedp.Click(selector, chromedp.ByQuery))
+}
+
+func (c *Controller) Type(ctx context.Context, selector, text string, clear bool) error {
+	if selector == "" {
+		return errors.New("missing selector")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
+	defer cancel()
+
+	actions := []chromedp.Action{
+		chromedp.Focus(selector, chromedp.ByQuery),
+	}
+	if clear {
+		actions = append(actions, chromedp.SetValue(selector, "", chromedp.ByQuery))
+	}
+	actions = append(actions, chromedp.SendKeys(selector, text, chromedp.ByQuery))
+
+	return chromedp.Run(runCtx, actions...)
+}
+
+func (c *Controller) Wait(ctx context.Context, selector, state string, timeout time.Duration) error {
+	if selector == "" {
+		return errors.New("missing selector")
+	}
+	if state == "" {
+		state = "visible"
+	}
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+
+	var action chromedp.Action
+	switch state {
+	case "visible":
+		action = chromedp.WaitVisible(selector, chromedp.ByQuery)
+	case "hidden":
+		action = chromedp.WaitNotVisible(selector, chromedp.ByQuery)
+	case "ready":
+		action = chromedp.WaitReady(selector, chromedp.ByQuery)
+	case "present":
+		action = chromedp.WaitReady(selector, chromedp.ByQuery)
+	case "gone":
+		action = chromedp.WaitNotPresent(selector, chromedp.ByQuery)
+	default:
+		return errors.New("unknown state")
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	runCtx, cancel := context.WithTimeout(c.tabCtx, timeout)
+	defer cancel()
+	return chromedp.Run(runCtx, action)
 }
