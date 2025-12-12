@@ -4,7 +4,7 @@
 
 - Serves a directory over HTTP (defaults to a new temp dir).
 - Launches a controlled Chromium tab (single-tab).
-- Exposes simple CLI commands to navigate, run JavaScript, query DOM, take screenshots, and reload.
+- Exposes simple CLI commands to navigate, run JavaScript, query/modify DOM, take screenshots, and reload.
 - Auto-reloads the tab when files on disk change.
 
 This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it in a real browser, validate it via DOM/JS queries, and capture screenshots.
@@ -37,6 +37,12 @@ Show status (use `--json` for agent-friendly output):
 
 ```sh
 canvas status --json
+```
+
+Get the DevTools websocket URL (useful for external CDP clients):
+
+```sh
+canvas devtools
 ```
 
 Write files into the session directory (`dir` from `canvas status --json`), then navigate:
@@ -101,6 +107,13 @@ Directory listings are not enabled.
 - `canvas screenshot`: capture a PNG screenshot (full page or selector)
 - `canvas reload`: reload the page
 
+## DevTools (remote debugging)
+
+Canvas launches Chromium with remote debugging bound to `127.0.0.1` and a dedicated port (random by default; override with `--devtools-port` on `canvas start`/`canvas serve`).
+
+- `canvas status --json` includes `devtools_port` and `devtools_ws_url`
+- `canvas devtools` prints the websocket URL (preferred) or the port
+
 ## State / configuration
 
 State is stored under the platform config dir:
@@ -121,4 +134,4 @@ Primary target is macOS (headed mode is the default). Other platforms can build,
 
 ## Roadmap
 
-- DevTools port / websocket URL exposure: right now we control Chrome via `chromedp` but we don’t surface a “DevTools port” you can attach to (nor do we support attaching to an existing Chrome).
+- Attach to an existing Chrome/Chromium session (instead of always launching our own).
