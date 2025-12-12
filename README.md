@@ -107,3 +107,7 @@ Debug logging for the browser controller:
 ## Platform
 
 Primary target is macOS (headed mode is the default). Other platforms can build, but you’ll likely want to pass `--browser-bin` explicitly.
+
+## Roadmap
+
+- DevTools port / websocket URL exposure: right now we control Chrome via `chromedp` but we don’t surface a “DevTools port” you can attach to (nor do we support attaching to an existing Chrome).
