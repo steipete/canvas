@@ -24,6 +24,7 @@ func newDaemonCmd() *cobra.Command {
 	cmd.Flags().IntVar(&cfg.DevToolsPort, "devtools-port", 0, "DevTools remote debugging port (0 picks a random free port)")
 	cmd.Flags().BoolVar(&cfg.Headless, "headless", false, "Run browser headless")
 	cmd.Flags().BoolVar(&cfg.App, "app", true, "Launch browser in app mode (chromeless window)")
+	cmd.Flags().BoolVar(&cfg.Stealth, "stealth", true, "Best-effort automation detection reduction")
 	cmd.Flags().StringVar(&cfg.WindowSize, "window-size", "1280,720", "Browser window size, e.g. 1280,720")
 	cmd.Flags().StringVar(&cfg.BrowserBin, "browser-bin", "", "Chromium/Chrome binary path (optional)")
 	cmd.Flags().BoolVar(&cfg.TempDir, "temp-dir", false, "Remove served directory on shutdown")

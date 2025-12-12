@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 )
 
@@ -33,6 +35,7 @@ type Options struct {
 	StartURL     string
 	AppMode      bool
 	WindowSize   string
+	Stealth      bool
 }
 
 func New(ctx context.Context, opts Options) (*Controller, error) {
@@ -86,6 +89,10 @@ func New(ctx context.Context, opts Options) (*Controller, error) {
 		browserPID:    launched.Cmd.Process.Pid,
 		devToolsPort:  launched.DevToolsPort,
 		devToolsWSURL: launched.DevToolsWS,
+	}
+
+	if opts.Stealth {
+		_ = c.applyStealth()
 	}
 
 	return c, nil
@@ -218,6 +225,26 @@ func (c *Controller) Title(ctx context.Context) (string, error) {
 	}
 	return title, nil
 }
+
+func (c *Controller) applyStealth() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Best-effort only: different Chromium builds support different CDP features.
+	_ = emulation.SetAutomationOverride(false).Do(c.tabCtx)
+	_ = page.Enable().Do(c.tabCtx)
+	_, err := page.AddScriptToEvaluateOnNewDocument(stealthScript).Do(c.tabCtx)
+	return err
+}
+
+const stealthScript = `(function () {
+  try {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  } catch (_) {}
+  try {
+    window.chrome = window.chrome || {};
+  } catch (_) {}
+})();`
 
 func (c *Controller) QueryAll(ctx context.Context, selector, mode string) ([]string, error) {
 	if selector == "" {

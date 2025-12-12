@@ -44,42 +44,7 @@ func launch(ctx context.Context, opts LaunchOptions) (launchedBrowser, error) {
 		return launchedBrowser{}, errors.New("missing browser bin")
 	}
 
-	args := []string{
-		"--remote-debugging-address=127.0.0.1",
-		fmt.Sprintf("--remote-debugging-port=%d", opts.DevToolsPort),
-		"--no-first-run",
-		"--no-default-browser-check",
-		"--disable-background-networking",
-		"--disable-default-apps",
-		"--disable-extensions",
-		"--disable-popup-blocking",
-		"--disable-infobars",
-		"--disable-blink-features=AutomationControlled",
-	}
-
-	if opts.UserDataDir != "" {
-		args = append(args, "--user-data-dir="+opts.UserDataDir)
-	}
-
-	if opts.WindowSize != "" {
-		args = append(args, "--window-size="+opts.WindowSize)
-	}
-
-	if opts.Headless {
-		// Prefer the modern headless mode when available.
-		args = append(args, "--headless=new")
-		args = append(args, "--disable-gpu")
-	}
-
-	startURL := opts.StartURL
-	if startURL == "" {
-		startURL = "about:blank"
-	}
-	if opts.AppMode && !opts.Headless && opts.StartURL != "" {
-		args = append(args, "--app="+opts.StartURL)
-	} else {
-		args = append(args, startURL)
-	}
+	args := buildLaunchArgs(opts)
 
 	cmd := exec.CommandContext(ctx, opts.BrowserBin, args...)
 	if os.Getenv("CANVAS_DEBUG") != "" {
@@ -117,6 +82,45 @@ func launch(ctx context.Context, opts LaunchOptions) (launchedBrowser, error) {
 		DevToolsPort: opts.DevToolsPort,
 		TargetID:     tgtID,
 	}, nil
+}
+
+func buildLaunchArgs(opts LaunchOptions) []string {
+	args := []string{
+		"--remote-debugging-address=127.0.0.1",
+		fmt.Sprintf("--remote-debugging-port=%d", opts.DevToolsPort),
+		"--no-first-run",
+		"--no-default-browser-check",
+		"--disable-background-networking",
+		"--disable-default-apps",
+		"--disable-extensions",
+		"--disable-popup-blocking",
+	}
+
+	if opts.UserDataDir != "" {
+		args = append(args, "--user-data-dir="+opts.UserDataDir)
+	}
+
+	if opts.WindowSize != "" {
+		args = append(args, "--window-size="+opts.WindowSize)
+	}
+
+	if opts.Headless {
+		// Prefer the modern headless mode when available.
+		args = append(args, "--headless=new")
+		args = append(args, "--disable-gpu")
+	}
+
+	startURL := opts.StartURL
+	if startURL == "" {
+		startURL = "about:blank"
+	}
+	if opts.AppMode && !opts.Headless && opts.StartURL != "" {
+		args = append(args, "--app="+opts.StartURL)
+	} else {
+		args = append(args, startURL)
+	}
+
+	return args
 }
 
 func pickTarget(targets []DevToolsTarget, startURL string) target.ID {

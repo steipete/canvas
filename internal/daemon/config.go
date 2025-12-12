@@ -9,6 +9,7 @@ type Config struct {
 	App          bool
 	WindowSize   string
 	BrowserBin   string
+	Stealth      bool
 	TempDir      bool
 	Watch        bool
 }

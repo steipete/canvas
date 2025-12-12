@@ -143,7 +143,11 @@ Debug logging for the browser controller:
 
 ## Platform
 
-Primary target is macOS (headed mode is the default). By default, the headed browser is launched in app mode (chromeless) — disable with `--app=false`.
+Primary target is macOS (headed mode is the default).
+
+By default, the headed browser is launched in app mode (chromeless) — disable with `--app=false`.
+
+Canvas also applies a best-effort “stealth” configuration to reduce automation detection signals — disable with `--stealth=false`.
 
 ## Roadmap
 

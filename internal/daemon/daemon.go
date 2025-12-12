@@ -100,6 +100,7 @@ func Run(cfg Config) error {
 		StartURL:     baseURL,
 		AppMode:      cfg.App && !cfg.Headless,
 		WindowSize:   cfg.WindowSize,
+		Stealth:      cfg.Stealth,
 	})
 	if err != nil {
 		_ = httpSrv.Shutdown(context.Background())
