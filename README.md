@@ -1,5 +1,8 @@
 # canvas
 
+Note: I integrated this idea into https://github.com/steipete/clawdis - for now that's the main point where I'll iterate on this.
+Canvas still has a great use case for less integrated personal assistants, my use case for now is in Clawdis tho.
+
 `canvas` is a small Go tool that gives an agent a “visual workspace”:
 
 - Serves a directory over HTTP (defaults to a new temp dir).
