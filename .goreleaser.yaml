@@ -1,0 +1,28 @@
+version: 2
+
+project_name: canvas
+
+changelog:
+  disable: true
+
+builds:
+  - id: canvas
+    main: ./cmd/canvas
+    binary: canvas
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - builds:
+      - canvas
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
