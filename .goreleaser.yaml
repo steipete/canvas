@@ -9,6 +9,9 @@ builds:
   - id: canvas
     main: ./cmd/canvas
     binary: canvas
+    ldflags: >-
+      -s -w
+      -X github.com/steipete/canvas/internal/cmd.version={{ .Tag }}
     env:
       - CGO_ENABLED=0
     targets:
