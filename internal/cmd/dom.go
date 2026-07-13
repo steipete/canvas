@@ -26,7 +26,7 @@ func newDomCmd(root *rootFlags) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&mode, "mode", "outer_html", "Query mode: outer_html or text")
+	cmd.PersistentFlags().StringVar(&mode, "mode", "outer_html", "Query mode: outer_html or text")
 
 	cmd.AddCommand(
 		newDomQueryCmd(root, &mode),

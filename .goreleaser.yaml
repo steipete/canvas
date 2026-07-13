@@ -21,9 +21,10 @@ builds:
       - linux_arm64
 
 archives:
-  - builds:
+  - ids:
       - canvas
-    format: tar.gz
+    formats:
+      - tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
