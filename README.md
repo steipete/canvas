@@ -15,7 +15,7 @@ This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it 
 
 ## Install / Build
 
-Requires Go (this repo currently targets Go 1.25+).
+Requires Go (this repo currently targets Go 1.26+).
 
 Build:
 

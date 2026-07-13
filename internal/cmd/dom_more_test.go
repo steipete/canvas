@@ -47,8 +47,7 @@ func TestDomAllCommand_JSON(t *testing.T) {
 
 	flags := &rootFlags{jsonOutput: true}
 	cmd := newDomCmd(flags)
-	cmd.SetArgs([]string{"all", "#x"})
-	_ = cmd.Flags().Set("mode", "text")
+	cmd.SetArgs([]string{"all", "#x", "--mode", "text"})
 
 	var buf bytes.Buffer
 	restore, err := captureStdout(&buf)
