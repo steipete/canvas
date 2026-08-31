@@ -29,6 +29,8 @@ Version stamping (optional):
 go build -ldflags "-X github.com/steipete/canvas/internal/cmd.version=$(git rev-parse --short HEAD)" ./cmd/canvas
 ```
 
+Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.
+
 ## Quickstart
 
 Start a background session (headed by default):
