@@ -334,7 +334,14 @@ func (c *Controller) Type(ctx context.Context, selector, text string, clear bool
 		chromedp.Focus(selector, chromedp.ByQuery),
 	}
 	if clear {
-		actions = append(actions, chromedp.SetValue(selector, "", chromedp.ByQuery))
+		// Assign directly: JSON v2 omits empty strings in CDP call arguments.
+		expr := fmt.Sprintf(`(() => {
+			const el = document.querySelector(%s);
+			el.value = "";
+			el.dispatchEvent(new Event('input', {bubbles: true}));
+			el.dispatchEvent(new Event('change', {bubbles: true}));
+		})()`, strconv.Quote(selector))
+		actions = append(actions, chromedp.Evaluate(expr, nil))
 	}
 	actions = append(actions, chromedp.SendKeys(selector, text, chromedp.ByQuery))
 

@@ -10,9 +10,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: 1.26.5
+          go-version: 1.27.0
           cache: true
       - name: gofmt (check)
         run: |
@@ -27,15 +27,17 @@ jobs:
       - name: go test -race
         run: |
           go test -race ./...
+      - name: Browser integration tests
+        run: go test -race -tags=integration ./internal/browser
 
   lint:
     name: Lint
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: 1.26.5
+          go-version: 1.27.0
           cache: true
       - uses: golangci/golangci-lint-action@v9
         with:
