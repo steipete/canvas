@@ -15,12 +15,18 @@ This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it 
 
 ## Install / Build
 
-Requires Go 1.26+. The preferred build toolchain is Go 1.27.1, selected automatically by `go.mod` when toolchain downloads are enabled.
+Requires Go 1.26+. The preferred build toolchain is Go 1.26.8, selected by `go.mod` when a newer Go version is not already installed and toolchain downloads are enabled. Release builds use Go 1.26.8 to retain macOS 12 compatibility; Go 1.27 builds require macOS 13 or later.
 
 Build:
 
 ```sh
 go build ./cmd/canvas
+```
+
+To build for macOS 12 even when a newer Go version is installed:
+
+```sh
+GOTOOLCHAIN=go1.26.8 go build ./cmd/canvas
 ```
 
 Version stamping (optional):
@@ -29,7 +35,7 @@ Version stamping (optional):
 go build -ldflags "-X github.com/steipete/canvas/internal/cmd.version=$(git rev-parse --short HEAD)" ./cmd/canvas
 ```
 
-Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI and release builds use the preferred toolchain from `go.mod`.
+Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.1; release builds use the compatible Go 1.26 toolchain from `go.mod`.
 
 ## Quickstart
 
