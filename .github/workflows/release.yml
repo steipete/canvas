@@ -26,6 +26,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
+          # Keep the Go 1.26 release toolchain for macOS 12 compatibility.
           go-version-file: go.mod
           cache: true
 
