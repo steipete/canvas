@@ -63,12 +63,12 @@ func launch(ctx context.Context, opts LaunchOptions) (launchedBrowser, error) {
 		return launchedBrowser{}, err
 	}
 
-	startupCtx, cancelStartup := context.WithTimeout(ctx, 30*time.Second)
+	startupCtx, cancelStartup := context.WithTimeout(ctx, 60*time.Second)
 	defer cancelStartup()
 	ws, err := devToolsWebSocketURL(startupCtx, opts.DevToolsPort)
 	if err != nil {
 		_ = terminateProcess(cmd, 2*time.Second)
-		return launchedBrowser{}, err
+		return launchedBrowser{}, fmt.Errorf("wait for browser DevTools endpoint: %w", err)
 	}
 
 	// Prefer attaching to the first "page" target (ideally the app/start URL).
