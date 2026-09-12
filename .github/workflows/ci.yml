@@ -64,7 +64,7 @@ jobs:
         run: |
           export CANVAS_TEST_BROWSER_BIN="$(command -v google-chrome)"
           test -n "$CANVAS_TEST_BROWSER_BIN"
-          go test -race -tags=integration ./internal/browser
+          dbus-run-session -- go test -race -tags=integration ./internal/browser
       - uses: golangci/golangci-lint-action@v9
         with:
           version: latest

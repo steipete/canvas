@@ -63,7 +63,9 @@ func launch(ctx context.Context, opts LaunchOptions) (launchedBrowser, error) {
 		return launchedBrowser{}, err
 	}
 
-	ws, err := DevToolsWebSocketURL(opts.DevToolsPort)
+	startupCtx, cancelStartup := context.WithTimeout(ctx, 30*time.Second)
+	defer cancelStartup()
+	ws, err := devToolsWebSocketURL(startupCtx, opts.DevToolsPort)
 	if err != nil {
 		_ = terminateProcess(cmd, 2*time.Second)
 		return launchedBrowser{}, err
