@@ -62,8 +62,15 @@ jobs:
         # The runner's Google Chrome has a supported AppArmor sandbox profile.
         # Keep Chromium's sandbox enabled instead of adding --no-sandbox.
         run: |
-          export CANVAS_TEST_BROWSER_BIN="$(command -v google-chrome)"
-          test -n "$CANVAS_TEST_BROWSER_BIN"
+          command -v google-chrome
+          # The disposable test profile has no credentials. Avoid waiting for a
+          # desktop Secret Service/keyring in the headless runner session.
+          export CANVAS_TEST_BROWSER_BIN="$RUNNER_TEMP/canvas-test-chrome"
+          cat > "$CANVAS_TEST_BROWSER_BIN" <<'SH'
+          #!/bin/sh
+          exec google-chrome --password-store=basic "$@"
+          SH
+          chmod +x "$CANVAS_TEST_BROWSER_BIN"
           dbus-run-session -- go test -race -tags=integration ./internal/browser
       - uses: golangci/golangci-lint-action@v9
         with:
