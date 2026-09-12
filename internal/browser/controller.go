@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	cdpbrowser "github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
@@ -119,6 +120,11 @@ func (c *Controller) Close() error {
 	if c.cancelAll == nil {
 		return nil
 	}
+	// Ask the browser to flush its profile and stop child processes before
+	// disconnecting CDP and falling back to process termination.
+	closeCtx, cancel := context.WithTimeout(c.tabCtx, 2*time.Second)
+	_ = chromedp.Run(closeCtx, cdpbrowser.Close())
+	cancel()
 	c.cancelAll()
 	_ = terminateProcess(c.browserCmd, 2*time.Second)
 	c.cancelAll = nil
