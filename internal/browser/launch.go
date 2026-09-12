@@ -172,6 +172,13 @@ func terminateProcess(cmd *exec.Cmd, timeout time.Duration) error {
 	}
 
 	_ = cmd.Process.Signal(syscall.SIGTERM)
+	return waitProcess(cmd, timeout)
+}
+
+func waitProcess(cmd *exec.Cmd, timeout time.Duration) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 

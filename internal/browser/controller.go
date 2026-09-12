@@ -123,10 +123,14 @@ func (c *Controller) Close() error {
 	// Ask the browser to flush its profile and stop child processes before
 	// disconnecting CDP and falling back to process termination.
 	closeCtx, cancel := context.WithTimeout(c.tabCtx, 2*time.Second)
-	_ = chromedp.Run(closeCtx, cdpbrowser.Close())
+	closeErr := chromedp.Run(closeCtx, cdpbrowser.Close())
 	cancel()
+	if closeErr == nil {
+		_ = waitProcess(c.browserCmd, 5*time.Second)
+	} else {
+		_ = terminateProcess(c.browserCmd, 2*time.Second)
+	}
 	c.cancelAll()
-	_ = terminateProcess(c.browserCmd, 2*time.Second)
 	c.cancelAll = nil
 	return nil
 }
