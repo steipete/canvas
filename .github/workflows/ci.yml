@@ -59,7 +59,12 @@ jobs:
       - name: Browser integration tests
         env:
           CANVAS_DEBUG: "1"
-        run: go test -race -tags=integration ./internal/browser
+        # The runner's Google Chrome has a supported AppArmor sandbox profile.
+        # Keep Chromium's sandbox enabled instead of adding --no-sandbox.
+        run: |
+          export CANVAS_TEST_BROWSER_BIN="$(command -v google-chrome)"
+          test -n "$CANVAS_TEST_BROWSER_BIN"
+          go test -race -tags=integration ./internal/browser
       - uses: golangci/golangci-lint-action@v9
         with:
           version: latest
