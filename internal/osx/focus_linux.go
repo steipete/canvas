@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 )
 
 func FocusPID(pid int) error {
@@ -16,7 +15,7 @@ func FocusPID(pid int) error {
 	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
 		return fmt.Errorf("window focus on Linux requires Hyprland")
 	}
-	output, err := exec.Command("hyprctl", "dispatch", "focuswindow", "pid:"+strconv.Itoa(pid)).CombinedOutput()
+	output, err := exec.Command("hyprctl", "dispatch", fmt.Sprintf(`hl.dsp.focus({ window = "pid:%d" })`, pid)).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("focus browser through Hyprland: %w: %s", err, output)
 	}

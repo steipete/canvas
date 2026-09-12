@@ -37,7 +37,7 @@ go build -ldflags "-X github.com/steipete/canvas/internal/cmd.version=$(git rev-
 
 Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.1; release builds use the compatible Go 1.26 toolchain from `go.mod`.
 
-On Linux, install Chromium (on Omarchy: `omarchy pkg add chromium`). Canvas detects Chromium, Chrome, Brave, and Edge executables on `PATH`; use `--browser-bin` to select another installation. `canvas focus` supports Hyprland. Other Linux compositors can use headless mode or their window manager to focus the browser.
+On Linux, install Chromium (on Omarchy: `omarchy pkg add chromium`). Canvas detects Chromium, Chrome, Brave, and Edge executables on `PATH`; use `--browser-bin` to select another installation. `canvas focus` supports Hyprland 0.55+ through its Lua dispatch API. Other Linux compositors can use headless mode or their window manager to focus the browser.
 
 ## Quickstart
 

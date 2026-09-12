@@ -17,7 +17,7 @@ func TestFocusLinux(t *testing.T) {
 	t.Setenv("PATH", dir)
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "test")
 	script := `#!/bin/sh
-[ "$1" = dispatch ] && [ "$2" = focuswindow ] && [ "$3" = pid:123 ]
+[ "$1" = dispatch ] && [ "$2" = 'hl.dsp.focus({ window = "pid:123" })' ]
 `
 	if err := os.WriteFile(filepath.Join(dir, "hyprctl"), []byte(script), 0755); err != nil {
 		t.Fatal(err)

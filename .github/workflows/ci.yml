@@ -57,6 +57,8 @@ jobs:
       - name: Test
         run: go test -race ./...
       - name: Browser integration tests
+        env:
+          CANVAS_DEBUG: "1"
         run: go test -race -tags=integration ./internal/browser
       - uses: golangci/golangci-lint-action@v9
         with:
