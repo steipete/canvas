@@ -14,7 +14,7 @@ import (
 func newFocusCmd(root *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "focus",
-		Short: "Bring the controlled browser window to the front (macOS)",
+		Short: "Bring the controlled browser window to the front (macOS or Hyprland)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, sess, _, err := mustClient()
 			if err != nil {

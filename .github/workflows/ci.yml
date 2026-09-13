@@ -44,3 +44,36 @@ jobs:
           version: latest
           install-mode: goinstall
           args: --timeout=5m
+
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.1
+          cache: true
+      - name: Test
+        run: go test -race ./...
+      - name: Browser integration tests
+        env:
+          CANVAS_DEBUG: "1"
+        # The runner's Google Chrome has a supported AppArmor sandbox profile.
+        # Keep Chromium's sandbox enabled instead of adding --no-sandbox.
+        run: |
+          command -v google-chrome
+          # The disposable test profile has no credentials. Avoid waiting for a
+          # desktop Secret Service/keyring in the headless runner session.
+          export CANVAS_TEST_BROWSER_BIN="$RUNNER_TEMP/canvas-test-chrome"
+          cat > "$CANVAS_TEST_BROWSER_BIN" <<'SH'
+          #!/bin/sh
+          exec google-chrome --password-store=basic "$@"
+          SH
+          chmod +x "$CANVAS_TEST_BROWSER_BIN"
+          dbus-run-session -- go test -race -tags=integration ./internal/browser
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          install-mode: goinstall
+          args: --timeout=5m

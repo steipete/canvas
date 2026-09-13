@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -19,9 +20,9 @@ document.addEventListener('change', event => changes.push(event.target.value));
 </script>`))
 	}))
 	t.Cleanup(server.Close)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	t.Cleanup(cancel)
-	controller, err := New(ctx, Options{Headless: true, UserDataDir: t.TempDir(), StartURL: server.URL})
+	controller, err := New(ctx, Options{BrowserBin: os.Getenv("CANVAS_TEST_BROWSER_BIN"), Headless: true, UserDataDir: t.TempDir(), StartURL: server.URL})
 	if err != nil {
 		t.Fatal(err)
 	}
