@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 0.1.0 - 2026-09-13
 
 **Highlights:** DOM commands now accept `--mode`, and `dom type --clear` correctly clears inputs and textareas.
