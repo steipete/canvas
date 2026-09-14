@@ -15,6 +15,15 @@ This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it 
 
 ## Install / Build
 
+Install the signed release on macOS 12 or later, or the Linux release, with Homebrew:
+
+```sh
+brew install steipete/tap/canvas
+canvas --version
+```
+
+Prebuilt archives for macOS and Linux (arm64 and amd64) and `checksums.txt` are available on the [GitHub Releases page](https://github.com/steipete/canvas/releases). macOS binaries are Developer ID signed and notarized. Building from source requires the Go toolchain described below.
+
 Requires Go 1.26+. The preferred build toolchain is Go 1.26.8, selected by `go.mod` when a newer Go version is not already installed and toolchain downloads are enabled. Release builds use Go 1.26.8 to retain macOS 12 compatibility; Go 1.27 builds require macOS 13 or later.
 
 Build:
@@ -34,6 +43,8 @@ Version stamping (optional):
 ```sh
 go build -ldflags "-X github.com/steipete/canvas/internal/cmd.version=$(git rev-parse --short HEAD)" ./cmd/canvas
 ```
+
+For the release procedure, see [RELEASING.md](RELEASING.md).
 
 Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.1; release builds use the compatible Go 1.26 toolchain from `go.mod`.
 

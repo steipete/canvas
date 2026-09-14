@@ -1,0 +1,18 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ $# != 1 || ! "$1" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "usage: $0 vX.Y.Z" >&2
+  exit 2
+fi
+
+tag=$1
+request_id="canvas-${tag}-$(date +%s)"
+# The personal tap is updated using the maintainer login, after publication.
+"${GH_BIN:-gh}" workflow run update-formula.yml --repo steipete/homebrew-tap \
+  -f formula=canvas -f tag="$tag" -f repository=steipete/canvas \
+  -f description="Visual workspace for agents" \
+  -f artifact_template='canvas_{version}_{target}.tar.gz' \
+  -f request_id="$request_id"
+echo "Dispatched Homebrew update: $request_id"
+echo "Verify the matching Update Formula run in steipete/homebrew-tap."
