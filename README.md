@@ -15,7 +15,7 @@ This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it 
 
 ## Install / Build
 
-Install the signed release on macOS or Linux with Homebrew (the current 0.1.0 release supports macOS 12; forthcoming builds require macOS 13):
+Install the signed release on macOS or Linux with Homebrew (macOS 13 or later is required as of 0.2.0):
 
 ```sh
 brew install steipete/tap/canvas
