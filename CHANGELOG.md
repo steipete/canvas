@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 0.2.0 - 2026-10-23
 
 **Highlights:** Fix reachable GO-2026-6809 in certificate verification with Go 1.27.3, stop blocked browser calls promptly, and require macOS 13 or later.
