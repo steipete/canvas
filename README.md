@@ -15,7 +15,7 @@ This is intentionally flexible: an agent can write HTML/CSS/JS to disk, view it 
 
 ## Install / Build
 
-Install the signed release on macOS 12 or later, or the Linux release, with Homebrew:
+Install the signed release on macOS or Linux with Homebrew (the current 0.1.0 release supports macOS 12; forthcoming builds require macOS 13):
 
 ```sh
 brew install steipete/tap/canvas
@@ -24,7 +24,7 @@ canvas --version
 
 Prebuilt archives for macOS and Linux (arm64 and amd64) and `checksums.txt` are available on the [GitHub Releases page](https://github.com/steipete/canvas/releases). macOS binaries are Developer ID signed and notarized. Building from source requires the Go toolchain described below.
 
-Requires Go 1.26+. The preferred build toolchain is Go 1.26.9, selected by `go.mod` when a newer Go version is not already installed and toolchain downloads are enabled. Release builds use Go 1.26.9 to retain macOS 12 compatibility; Go 1.27 builds require macOS 13 or later.
+The source minimum remains Go 1.26, with automatic toolchain downloads enabled. Builds and CI use Go 1.27.3 or newer to include the GO-2026-6809 certificate-verification fix. The toolchain is selected by `go.mod`; new macOS binaries require macOS 13 or later.
 
 Build:
 
@@ -32,10 +32,10 @@ Build:
 go build ./cmd/canvas
 ```
 
-To build for macOS 12 even when a newer Go version is installed:
+To build with the exact release toolchain:
 
 ```sh
-GOTOOLCHAIN=go1.26.9 go build ./cmd/canvas
+GOTOOLCHAIN=go1.27.3 go build ./cmd/canvas
 ```
 
 Version stamping (optional):
@@ -46,7 +46,7 @@ go build -ldflags "-X github.com/steipete/canvas/internal/cmd.version=$(git rev-
 
 For the release procedure, see [RELEASING.md](RELEASING.md).
 
-Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.2 on `xcode-27`; release builds use the compatible Go 1.26 toolchain from `go.mod`. CI also checks the macOS 12 minimum and runs Intel release binaries under Rosetta.
+Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.3 on `xcode-27`; release builds use the same patched toolchain from `go.mod`. CI also checks the macOS 13 minimum and runs Intel release binaries under Rosetta.
 
 On Linux, install Chromium (on Omarchy: `omarchy pkg add chromium`). Canvas detects Chromium, Chrome, Brave, and Edge executables on `PATH`; use `--browser-bin` to select another installation. `canvas focus` supports Hyprland 0.55+ through its Lua dispatch API. Other Linux compositors can use headless mode or their window manager to focus the browser.
 
@@ -58,7 +58,7 @@ Start a background session (headed by default):
 canvas start
 ```
 
-Restart the session (useful after updating Canvas, or to relaunch Chrome):
+Restart the session (useful after updating Canvas, or to relaunch Chrome; cleanup from the old daemon preserves the replacement session):
 
 ```sh
 canvas start --restart
@@ -118,7 +118,7 @@ canvas screenshot --out /tmp/canvas.png
 canvas screenshot --selector "#app" --out /tmp/app.png
 ```
 
-Stop the session:
+Stop the session (in-flight browser commands are canceled so shutdown can complete):
 
 ```sh
 canvas stop

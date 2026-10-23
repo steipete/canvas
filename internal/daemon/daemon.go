@@ -312,15 +312,14 @@ func Run(cfg Config) error {
 		}()
 	})
 
-	unixLn, err := net.Listen("unix", socketPath)
+	unixLn, socketInfo, err := listenRPCSocket(socketPath)
 	if err != nil {
 		return fmt.Errorf("listen rpc: %w", err)
 	}
-	if err := os.Chmod(socketPath, 0o600); err != nil {
+	defer func() {
 		_ = unixLn.Close()
-		return err
-	}
-	defer unixLn.Close()
+		removeOwnSocket(socketPath, socketInfo)
+	}()
 
 	rpcSrv := &http.Server{Handler: rpch}
 	go func() { _ = rpcSrv.Serve(unixLn) }()
@@ -342,13 +341,7 @@ func Run(cfg Config) error {
 	if err := state.Save(cfg.StateDir, sess); err != nil {
 		return fmt.Errorf("write session: %w", err)
 	}
-	defer func() {
-		_ = state.Remove(cfg.StateDir)
-		_ = os.Remove(socketPath)
-		if cfg.TempDir {
-			_ = os.RemoveAll(cfg.ServeDir)
-		}
-	}()
+	defer releaseDaemonState(cfg.StateDir, socketPath, os.Getpid(), socketInfo, cfg.TempDir, cfg.ServeDir)
 
 	// File watcher for auto-reload.
 	if cfg.Watch {
@@ -379,6 +372,57 @@ func Run(cfg Config) error {
 	cancel()
 
 	return nil
+}
+
+func listenRPCSocket(socketPath string) (*net.UnixListener, os.FileInfo, error) {
+	ln, err := net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
+	if err != nil {
+		return nil, nil, err
+	}
+	// A late Close must not unlink a socket installed by a replacement daemon.
+	ln.SetUnlinkOnClose(false)
+	info, err := os.Stat(socketPath)
+	if err != nil {
+		_ = ln.Close()
+		return nil, nil, err
+	}
+	if err := os.Chmod(socketPath, 0o600); err != nil {
+		_ = ln.Close()
+		removeOwnSocket(socketPath, info)
+		return nil, nil, err
+	}
+	return ln, info, nil
+}
+
+func releaseDaemonState(stateDir, socketPath string, pid int, socketInfo os.FileInfo, removeTemp bool, serveDir string) {
+	if current, err := state.Load(stateDir); err == nil && current.PID == pid {
+		_ = state.Remove(stateDir)
+	}
+	removeOwnSocket(socketPath, socketInfo)
+	if !removeTemp {
+		return
+	}
+	current, err := state.Load(stateDir)
+	if err != nil && !os.IsNotExist(err) {
+		return
+	}
+	if err == nil && current.PID != pid && filepath.Clean(current.Dir) == filepath.Clean(serveDir) {
+		return
+	}
+	_ = os.RemoveAll(serveDir)
+}
+
+func removeOwnSocket(path string, original os.FileInfo) {
+	if path == "" || original == nil {
+		return
+	}
+	current, err := os.Stat(path)
+	if err != nil {
+		return
+	}
+	if os.SameFile(original, current) {
+		_ = os.Remove(path)
+	}
 }
 
 func normalizeURL(baseURL, in string) string {

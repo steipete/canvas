@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- Move macOS CI to Xcode 27 runners and verify macOS 12 release binaries on both Apple Silicon and Intel under Rosetta.
-- Use Go 1.27.2 in CI and patched Go 1.26.9 for macOS 12-compatible releases; add safe release dry runs through the updated shared workflow.
+- Stop blocked browser calls promptly and keep replacement sessions and Unix sockets intact during restart. Thanks @SebTardif.
+- Move macOS CI to Xcode 27 runners and verify release binaries on both Apple Silicon and Intel under Rosetta.
+- Use Go 1.27.3 for CI and releases to fix reachable GO-2026-6809 in certificate verification; retain the Go 1.26 source minimum. New builds require macOS 13 or later. Add safe release dry runs through the updated shared workflow.
 
 ## 0.1.0 - 2026-09-13
 

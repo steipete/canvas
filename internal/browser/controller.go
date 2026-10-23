@@ -18,6 +18,8 @@ import (
 
 type Controller struct {
 	mu            sync.Mutex
+	actionGate    chan struct{}
+	runCDP        func(context.Context, ...chromedp.Action) error
 	tabCtx        context.Context
 	cancelAll     context.CancelFunc
 	browserCmd    *exec.Cmd
@@ -116,43 +118,93 @@ func pickFreeLocalPort() (int, error) {
 
 func (c *Controller) Close() error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.cancelAll == nil {
+		c.mu.Unlock()
 		return nil
 	}
-	// Ask the browser to flush its profile and stop child processes before
-	// disconnecting CDP and falling back to process termination.
-	closeCtx, cancel := context.WithTimeout(c.tabCtx, 2*time.Second)
-	closeErr := chromedp.Run(closeCtx, cdpbrowser.Close())
-	cancel()
-	if closeErr == nil {
-		_ = waitProcess(c.browserCmd, 5*time.Second)
-	} else {
-		_ = terminateProcess(c.browserCmd, 2*time.Second)
-	}
-	c.cancelAll()
+	tabCtx := c.tabCtx
+	cancelAll := c.cancelAll
+	cmd := c.browserCmd
 	c.cancelAll = nil
+	c.mu.Unlock()
+
+	// The browser close is bounded. Canceling the tab context afterwards
+	// unblocks a CDP call that is still waiting, without making that call
+	// hold the controller lock.
+	closeCtx, cancel := context.WithTimeout(tabCtx, 2*time.Second)
+	closeErr := c.executeCDP(closeCtx, cdpbrowser.Close())
+	cancel()
+	cancelAll()
+	if closeErr == nil {
+		_ = waitProcess(cmd, 5*time.Second)
+	} else {
+		_ = terminateProcess(cmd, 2*time.Second)
+	}
 	return nil
 }
 
-func (c *Controller) Alive(ctx context.Context) bool {
+func (c *Controller) run(ctx context.Context, timeout time.Duration, actions ...chromedp.Action) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
+	tabCtx := c.tabCtx
+	closed := c.cancelAll == nil
+	// Serialize page actions without holding the shutdown lock.
+	if c.actionGate == nil {
+		c.actionGate = make(chan struct{}, 1)
+	}
+	gate := c.actionGate
+	c.mu.Unlock()
+	if tabCtx == nil || closed {
+		return errors.New("browser closed")
+	}
+
+	var (
+		runCtx context.Context
+		cancel context.CancelFunc
+	)
+	if timeout > 0 {
+		runCtx, cancel = context.WithTimeout(tabCtx, timeout)
+	} else {
+		runCtx, cancel = context.WithCancel(tabCtx)
+	}
+	defer cancel()
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		stop := context.AfterFunc(ctx, cancel)
+		defer stop()
+	}
+	select {
+	case gate <- struct{}{}:
+		defer func() { <-gate }()
+	case <-runCtx.Done():
+		return runCtx.Err()
+	}
+	if err := runCtx.Err(); err != nil {
+		return err
+	}
+	return c.executeCDP(runCtx, actions...)
+}
+
+func (c *Controller) executeCDP(ctx context.Context, actions ...chromedp.Action) error {
+	if c.runCDP != nil {
+		return c.runCDP(ctx, actions...)
+	}
+	return chromedp.Run(ctx, actions...)
+}
+
+func (c *Controller) Alive(ctx context.Context) bool {
 	var title string
-	err := chromedp.Run(c.tabCtx, chromedp.Title(&title))
-	return err == nil
+	return c.run(ctx, 0, chromedp.Title(&title)) == nil
 }
 
 func (c *Controller) Navigate(ctx context.Context, url string) (string, string, error) {
 	if url == "" {
 		return "", "", errors.New("missing url")
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	var title string
 	var loc string
-	err := chromedp.Run(c.tabCtx,
+	err := c.run(ctx, 0,
 		chromedp.Navigate(url),
 		chromedp.WaitReady("body", chromedp.ByQuery),
 		chromedp.Location(&loc),
@@ -162,47 +214,37 @@ func (c *Controller) Navigate(ctx context.Context, url string) (string, string, 
 }
 
 func (c *Controller) Reload(ctx context.Context) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return chromedp.Run(c.tabCtx,
+	return c.run(ctx, 0,
 		chromedp.Reload(),
 		chromedp.WaitReady("body", chromedp.ByQuery),
 	)
 }
 
 func (c *Controller) Eval(ctx context.Context, expr string) (any, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var out any
-	if err := chromedp.Run(c.tabCtx, chromedp.Evaluate(expr, &out)); err != nil {
+	if err := c.run(ctx, 0, chromedp.Evaluate(expr, &out)); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
 func (c *Controller) OuterHTML(ctx context.Context, selector string) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var out string
-	if err := chromedp.Run(c.tabCtx, chromedp.OuterHTML(selector, &out, chromedp.ByQuery)); err != nil {
+	if err := c.run(ctx, 0, chromedp.OuterHTML(selector, &out, chromedp.ByQuery)); err != nil {
 		return "", err
 	}
 	return out, nil
 }
 
 func (c *Controller) Text(ctx context.Context, selector string) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var out string
-	if err := chromedp.Run(c.tabCtx, chromedp.Text(selector, &out, chromedp.ByQuery)); err != nil {
+	if err := c.run(ctx, 0, chromedp.Text(selector, &out, chromedp.ByQuery)); err != nil {
 		return "", err
 	}
 	return out, nil
 }
 
 func (c *Controller) Screenshot(ctx context.Context, selector string) ([]byte, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var buf []byte
 	var action chromedp.Action
 	if selector == "" {
@@ -210,27 +252,23 @@ func (c *Controller) Screenshot(ctx context.Context, selector string) ([]byte, e
 	} else {
 		action = chromedp.Screenshot(selector, &buf, chromedp.NodeVisible, chromedp.ByQuery)
 	}
-	if err := chromedp.Run(c.tabCtx, action); err != nil {
+	if err := c.run(ctx, 0, action); err != nil {
 		return nil, err
 	}
 	return buf, nil
 }
 
 func (c *Controller) Location(ctx context.Context) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var loc string
-	if err := chromedp.Run(c.tabCtx, chromedp.Location(&loc)); err != nil {
+	if err := c.run(ctx, 0, chromedp.Location(&loc)); err != nil {
 		return "", err
 	}
 	return loc, nil
 }
 
 func (c *Controller) Title(ctx context.Context) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	var title string
-	if err := chromedp.Run(c.tabCtx, chromedp.Title(&title)); err != nil {
+	if err := c.run(ctx, 0, chromedp.Title(&title)); err != nil {
 		return "", err
 	}
 	return title, nil
@@ -275,13 +313,8 @@ func (c *Controller) QueryAll(ctx context.Context, selector, mode string) ([]str
 		return nil, errors.New("unknown mode")
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
-	defer cancel()
-
 	var out []string
-	if err := chromedp.Run(runCtx, chromedp.Evaluate(expr, &out)); err != nil {
+	if err := c.run(ctx, 15*time.Second, chromedp.Evaluate(expr, &out)); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -299,13 +332,8 @@ func (c *Controller) Attr(ctx context.Context, selector, name string) (*string, 
 	exprName := strconv.Quote(name)
 	expr := fmt.Sprintf(`(() => { const el = document.querySelector(%s); if (!el) return {"__canvas":"not_found"}; return el.getAttribute(%s); })()`, exprSel, exprName)
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
-	defer cancel()
-
 	var out any
-	if err := chromedp.Run(runCtx, chromedp.Evaluate(expr, &out)); err != nil {
+	if err := c.run(ctx, 15*time.Second, chromedp.Evaluate(expr, &out)); err != nil {
 		return nil, err
 	}
 	switch v := out.(type) {
@@ -324,22 +352,13 @@ func (c *Controller) Click(ctx context.Context, selector string) error {
 	if selector == "" {
 		return errors.New("missing selector")
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
-	defer cancel()
-	return chromedp.Run(runCtx, chromedp.Click(selector, chromedp.ByQuery))
+	return c.run(ctx, 15*time.Second, chromedp.Click(selector, chromedp.ByQuery))
 }
 
 func (c *Controller) Type(ctx context.Context, selector, text string, clear bool) error {
 	if selector == "" {
 		return errors.New("missing selector")
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	runCtx, cancel := context.WithTimeout(c.tabCtx, 15*time.Second)
-	defer cancel()
-
 	actions := []chromedp.Action{
 		chromedp.Focus(selector, chromedp.ByQuery),
 	}
@@ -355,7 +374,7 @@ func (c *Controller) Type(ctx context.Context, selector, text string, clear bool
 	}
 	actions = append(actions, chromedp.SendKeys(selector, text, chromedp.ByQuery))
 
-	return chromedp.Run(runCtx, actions...)
+	return c.run(ctx, 15*time.Second, actions...)
 }
 
 func (c *Controller) Wait(ctx context.Context, selector, state string, timeout time.Duration) error {
@@ -385,9 +404,5 @@ func (c *Controller) Wait(ctx context.Context, selector, state string, timeout t
 		return errors.New("unknown state")
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	runCtx, cancel := context.WithTimeout(c.tabCtx, timeout)
-	defer cancel()
-	return chromedp.Run(runCtx, action)
+	return c.run(ctx, timeout, action)
 }
