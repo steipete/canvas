@@ -37,7 +37,6 @@ func Run(cfg Config) error {
 	}
 
 	socketPath := filepath.Join(cfg.StateDir, "canvas.sock")
-	_ = os.Remove(socketPath)
 
 	token, err := randomToken(16)
 	if err != nil {
@@ -54,6 +53,9 @@ func Run(cfg Config) error {
 		return fmt.Errorf("listen http: %w", err)
 	}
 	defer httpLn.Close()
+	// A taken HTTP port must not unlink the control socket of the daemon
+	// that is still running.
+	_ = os.Remove(socketPath)
 
 	httpSrv := &http.Server{
 		Handler: staticHandler,
