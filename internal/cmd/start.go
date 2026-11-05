@@ -3,9 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -48,6 +50,10 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 						_, _ = c.Stop(ctx)
 						cancel()
+						// /stop answers before the old process closes its ports.
+						if err := waitForRestartListeners(port, devToolsPort, st.HTTPPort, st.DevToolsPort); err != nil {
+							return err
+						}
 						_ = state.Remove(stateDir)
 					} else {
 						if root.jsonOutput {
@@ -164,6 +170,50 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 	cmd.Flags().BoolVar(&restart, "restart", false, "Restart if already running")
 
 	return cmd
+}
+
+// restartPortReleaseTimeout bounds the wait for a fixed port that
+// canvas start --restart is about to bind. /stop can return first.
+var restartPortReleaseTimeout = 5 * time.Second
+
+func waitForRestartListeners(requestedHTTP, requestedDevTools, runningHTTP, runningDevTools int) error {
+	if requestedHTTP > 0 && requestedHTTP == runningHTTP {
+		if err := waitUntilBoundPortFree(requestedHTTP, restartPortReleaseTimeout); err != nil {
+			return fmt.Errorf("restart: old http listener did not close: %w", err)
+		}
+	}
+	if requestedDevTools > 0 && requestedDevTools == runningDevTools {
+		if err := waitUntilBoundPortFree(requestedDevTools, restartPortReleaseTimeout); err != nil {
+			return fmt.Errorf("restart: old devtools listener did not close: %w", err)
+		}
+	}
+	return nil
+}
+
+func waitUntilBoundPortFree(port int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var last error
+	for {
+		last = boundPortFree(port)
+		if last == nil {
+			return nil
+		}
+		if !time.Now().Before(deadline) {
+			return last
+		}
+		time.Sleep(15 * time.Millisecond)
+	}
+}
+
+func boundPortFree(port int) error {
+	ln, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	if err != nil {
+		return fmt.Errorf("port %d is still in use: %w", port, err)
+	}
+	if err := ln.Close(); err != nil {
+		return fmt.Errorf("release probed port %d: %w", port, err)
+	}
+	return nil
 }
 
 var spawnDaemon = func(bin string, args []string, logFile *os.File) error {

@@ -305,11 +305,12 @@ func Run(cfg Config) error {
 	})
 
 	rpch.Mux.HandleFunc("/stop", func(w http.ResponseWriter, r *http.Request) {
+		// Close the browser and the content port before answering.
+		// The control socket stays open until the response has been written.
+		_ = controller.Close()
+		releaseHTTPServer(httpSrv)
 		rpcWriteJSON(w, http.StatusOK, rpc.StopResponse{OK: true})
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			stopOnce.Do(func() { close(stopCh) })
-		}()
+		scheduleDaemonStop(&stopOnce, stopCh)
 	})
 
 	unixLn, socketInfo, err := listenRPCSocket(socketPath)
@@ -372,6 +373,26 @@ func Run(cfg Config) error {
 	cancel()
 
 	return nil
+}
+
+const stopResponseDelay = 100 * time.Millisecond
+
+// scheduleDaemonStop closes stopCh after the /stop response can flush.
+// Call it only after the HTTP listener is already released.
+func scheduleDaemonStop(stopOnce *sync.Once, stopCh chan struct{}) {
+	go func() {
+		time.Sleep(stopResponseDelay)
+		stopOnce.Do(func() { close(stopCh) })
+	}()
+}
+
+func releaseHTTPServer(srv *http.Server) {
+	if srv == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_ = srv.Shutdown(ctx)
 }
 
 func listenRPCSocket(socketPath string) (*net.UnixListener, os.FileInfo, error) {
