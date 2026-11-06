@@ -62,21 +62,9 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 						}
 						return nil
 					}
-				} else if restart {
+				} else {
 					// Stale session; remove and proceed.
 					_ = state.Remove(stateDir)
-				} else {
-					if root.jsonOutput {
-						return printJSON(st)
-					}
-					fmt.Fprintf(os.Stdout, "running: http://%s:%d/\n", st.HTTPAddr, st.HTTPPort)
-					fmt.Fprintf(os.Stdout, "dir: %s\n", st.Dir)
-					if st.DevToolsWSURL != "" {
-						fmt.Fprintf(os.Stdout, "devtools: %s\n", st.DevToolsWSURL)
-					} else if st.DevToolsPort != 0 {
-						fmt.Fprintf(os.Stdout, "devtools-port: %d\n", st.DevToolsPort)
-					}
-					return nil
 				}
 			}
 
