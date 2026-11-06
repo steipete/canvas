@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,9 +64,12 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 						}
 						return nil
 					}
-				} else {
+				} else if restart || stErr == nil || statusEndpointDead(stErr) {
 					// Stale session; remove and proceed.
 					_ = state.Remove(stateDir)
+				} else {
+					// Not a dead socket. Leave the running daemon in place.
+					return fmt.Errorf("the existing daemon did not answer in time: %w", stErr)
 				}
 			}
 
@@ -152,6 +157,24 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 	cmd.Flags().BoolVar(&restart, "restart", false, "Restart if already running")
 
 	return cmd
+}
+
+// statusEndpointDead reports a failed dial to the saved socket: the file
+// is missing, the connection is refused, or connect fails the same way.
+// A timeout, or an error after the socket accepts, is not proof it is dead.
+func statusEndpointDead(err error) bool {
+	if err == nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return false
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return false
+	}
+	if errors.Is(err, syscall.ENOENT) || errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ECONNREFUSED) {
+		return true
+	}
+	var opErr *net.OpError
+	return errors.As(err, &opErr) && opErr.Op == "dial"
 }
 
 var spawnDaemon = func(bin string, args []string, logFile *os.File) error {
