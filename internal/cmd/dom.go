@@ -232,7 +232,11 @@ func newDomWaitCmd(root *rootFlags) *cobra.Command {
 			if timeout > 0 {
 				ms = int(timeout.Milliseconds())
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), timeoutOrDefault(timeout, 20*time.Second))
+			wait := timeoutOrDefault(timeout, 20*time.Second)
+			// The shared client cap is 30s. A longer --timeout must raise it
+			// or the HTTP client cancels the server wait early.
+			c.SetMinTimeout(wait)
+			ctx, cancel := context.WithTimeout(context.Background(), wait)
 			out, err := c.DomWait(ctx, args[0], state, ms)
 			cancel()
 			if err != nil {

@@ -27,9 +27,24 @@ func NewUnixClient(socketPath, token string) *Client {
 		baseURL: "http://unix",
 		httpClient: &http.Client{
 			Transport: transport,
-			Timeout:   30 * time.Second,
+			Timeout:   DefaultHTTPTimeout,
 		},
 		token: token,
+	}
+}
+
+// DefaultHTTPTimeout is the HTTP cap for one RPC call.
+// A longer dom wait raises it on that client.
+var DefaultHTTPTimeout = 30 * time.Second
+
+// SetMinTimeout raises this client's HTTP timeout to at least d.
+// A zero timeout means no cap and is left alone. A shorter d does not shrink it.
+func (c *Client) SetMinTimeout(d time.Duration) {
+	if c.httpClient == nil || d <= 0 || c.httpClient.Timeout <= 0 {
+		return
+	}
+	if c.httpClient.Timeout < d {
+		c.httpClient.Timeout = d
 	}
 }
 
@@ -126,6 +141,9 @@ func (c *Client) DomType(ctx context.Context, selector, text string, clear bool)
 }
 
 func (c *Client) DomWait(ctx context.Context, selector, state string, timeoutMS int) (DomWaitResponse, error) {
+	if timeoutMS > 0 {
+		c.SetMinTimeout(time.Duration(timeoutMS) * time.Millisecond)
+	}
 	var out DomWaitResponse
 	err := c.doJSON(ctx, http.MethodPost, "/dom/wait", DomWaitRequest{Selector: selector, State: state, TimeoutMS: timeoutMS}, &out)
 	return out, err
