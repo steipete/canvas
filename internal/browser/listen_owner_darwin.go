@@ -9,11 +9,21 @@ import (
 	"strings"
 )
 
+// lsofPath returns lsof from PATH, or the macOS system binary when PATH
+// does not include it. /usr/sbin is not on PATH=/usr/bin:/bin, and a
+// LookPath failure is not an lsof exit status.
+func lsofPath() string {
+	if path, err := exec.LookPath("lsof"); err == nil {
+		return path
+	}
+	return "/usr/sbin/lsof"
+}
+
 func listeningPIDs(port int) ([]int, error) {
 	if port <= 0 {
 		return nil, errors.New("missing port")
 	}
-	out, err := exec.Command("lsof", "-nP", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN", "-Fp").Output()
+	out, err := exec.Command(lsofPath(), "-nP", "-iTCP:"+strconv.Itoa(port), "-sTCP:LISTEN", "-Fp").Output()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
