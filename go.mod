@@ -1,6 +1,6 @@
 module github.com/steipete/canvas
 
-go 1.26
+go 1.26.0
 
 toolchain go1.27.4
 
@@ -19,5 +19,5 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.1.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 )
