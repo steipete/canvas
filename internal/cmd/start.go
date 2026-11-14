@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -62,21 +63,12 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 						}
 						return nil
 					}
-				} else if restart {
+				} else if stErr == nil || statusEndpointDead(stErr) {
 					// Stale session; remove and proceed.
 					_ = state.Remove(stateDir)
 				} else {
-					if root.jsonOutput {
-						return printJSON(st)
-					}
-					fmt.Fprintf(os.Stdout, "running: http://%s:%d/\n", st.HTTPAddr, st.HTTPPort)
-					fmt.Fprintf(os.Stdout, "dir: %s\n", st.Dir)
-					if st.DevToolsWSURL != "" {
-						fmt.Fprintf(os.Stdout, "devtools: %s\n", st.DevToolsWSURL)
-					} else if st.DevToolsPort != 0 {
-						fmt.Fprintf(os.Stdout, "devtools-port: %d\n", st.DevToolsPort)
-					}
-					return nil
+					// Not a dead socket. Leave the running daemon in place.
+					return fmt.Errorf("cannot query the existing daemon; let its current operation finish and retry canvas start: %w", stErr)
 				}
 			}
 
@@ -164,6 +156,11 @@ func newStartCmd(root *rootFlags) *cobra.Command {
 	cmd.Flags().BoolVar(&restart, "restart", false, "Restart if already running")
 
 	return cmd
+}
+
+// Only a missing socket or refused connection establishes endpoint death.
+func statusEndpointDead(err error) bool {
+	return errors.Is(err, syscall.ENOENT) || errors.Is(err, syscall.ECONNREFUSED)
 }
 
 var spawnDaemon = func(bin string, args []string, logFile *os.File) error {

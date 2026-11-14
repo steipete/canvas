@@ -24,7 +24,7 @@ canvas --version
 
 Prebuilt archives for macOS and Linux (arm64 and amd64) and `checksums.txt` are available on the [GitHub Releases page](https://github.com/steipete/canvas/releases). macOS binaries are Developer ID signed and notarized. Building from source requires the Go toolchain described below.
 
-The source minimum remains Go 1.26, with automatic toolchain downloads enabled. Builds and CI use Go 1.27.3 or newer to include the GO-2026-6809 certificate-verification fix. The toolchain is selected by `go.mod`; new macOS binaries require macOS 13 or later.
+The source minimum remains Go 1.26, with automatic toolchain downloads enabled. Builds and CI use Go 1.27.4 or newer to include the GO-2026-6809 certificate-verification fix. The toolchain is selected by `go.mod`; new macOS binaries require macOS 13 or later.
 
 Build:
 
@@ -35,7 +35,7 @@ go build ./cmd/canvas
 To build with the exact release toolchain:
 
 ```sh
-GOTOOLCHAIN=go1.27.3 go build ./cmd/canvas
+GOTOOLCHAIN=go1.27.4 go build ./cmd/canvas
 ```
 
 Version stamping (optional):
@@ -46,7 +46,7 @@ go build -ldflags "-X github.com/steipete/canvas/internal/cmd.version=$(git rev-
 
 For the release procedure, see [RELEASING.md](RELEASING.md).
 
-Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.3 on `xcode-27`; release builds use the same patched toolchain from `go.mod`. CI also checks the macOS 13 minimum and runs Intel release binaries under Rosetta.
+Run the unit tests with `go test ./...`. On macOS with Chrome or Chromium installed, run `go test -race -tags=integration ./internal/browser` for the browser integration tests. CI runs both using Go 1.27.4 on `xcode-27`; release builds use the same patched toolchain from `go.mod`. CI also checks the macOS 13 minimum and runs Intel release binaries under Rosetta.
 
 On Linux, install Chromium (on Omarchy: `omarchy pkg add chromium`). Canvas detects Chromium, Chrome, Brave, and Edge executables on `PATH`; use `--browser-bin` to select another installation. `canvas focus` supports Hyprland 0.55+ through its Lua dispatch API. Other Linux compositors can use headless mode or their window manager to focus the browser.
 
@@ -139,7 +139,7 @@ If `/` doesn’t have an `index.html` yet, Canvas serves a built-in welcome page
 ## Commands
 
 - `canvas start`: daemonizes (writes session info under the state dir)
-- `canvas serve`: foreground mode (useful for debugging)
+- `canvas serve`: foreground mode (useful for debugging); stop any existing session first
 - `canvas status`: shows whether a session is running
 - `canvas stop` (alias: `close`): stops server + closes controlled browser
 - `canvas focus`: brings the controlled browser window to the front (macOS; no-op in headless)
@@ -185,3 +185,5 @@ Canvas also applies a best-effort “stealth” configuration to reduce automati
 - Screenshot options: no viewport sizing, full-page vs viewport toggle, JPEG, clip rect, DPR control.
 - File server features: no SPA fallback, no custom headers, no directory listing toggle, no 404 page.
 - Session robustness: no stale-session cleanup, PID validation, or “restart” command; daemon log exists but no `canvas logs`.
+
+Long DOM waits honor `--timeout` beyond 30 seconds. If `start` cannot query a saved session, it preserves it; let the current browser operation finish and retry. A missing socket is recovered automatically.
