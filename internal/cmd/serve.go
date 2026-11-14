@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/steipete/canvas/internal/daemon"
+	"github.com/steipete/canvas/internal/rpc"
 	"github.com/steipete/canvas/internal/state"
 )
 
@@ -28,6 +32,20 @@ func newServeCmd(root *rootFlags) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			stateDir, err := state.DefaultStateDir()
 			if err != nil {
+				return err
+			}
+
+			if sess, err := state.Load(stateDir); err == nil && sess.SocketPath != "" {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				st, statusErr := rpc.NewUnixClient(sess.SocketPath, sess.Token).Status(ctx)
+				cancel()
+				if statusErr != nil && !statusEndpointDead(statusErr) {
+					return fmt.Errorf("cannot query existing daemon; retry after its current operation: %w", statusErr)
+				}
+				if statusErr == nil && st.Running {
+					return fmt.Errorf("canvas is already running; run canvas stop before canvas serve")
+				}
+			} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 

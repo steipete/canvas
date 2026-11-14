@@ -34,6 +34,10 @@ func NewUnixClient(socketPath, token string) *Client {
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, reqBody any, out any) error {
+	return c.doJSONWithClient(ctx, c.httpClient, method, path, reqBody, out)
+}
+
+func (c *Client) doJSONWithClient(ctx context.Context, client *http.Client, method, path string, reqBody any, out any) error {
 	var body *bytes.Reader
 	if reqBody != nil {
 		b, err := json.Marshal(reqBody)
@@ -56,7 +60,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, reqBody any, o
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -127,7 +131,12 @@ func (c *Client) DomType(ctx context.Context, selector, text string, clear bool)
 
 func (c *Client) DomWait(ctx context.Context, selector, state string, timeoutMS int) (DomWaitResponse, error) {
 	var out DomWaitResponse
-	err := c.doJSON(ctx, http.MethodPost, "/dom/wait", DomWaitRequest{Selector: selector, State: state, TimeoutMS: timeoutMS}, &out)
+	// Copy the client so concurrent ordinary RPCs retain their own timeout.
+	client := *c.httpClient
+	if timeout := time.Duration(timeoutMS) * time.Millisecond; timeout > client.Timeout && client.Timeout > 0 {
+		client.Timeout = timeout
+	}
+	err := c.doJSONWithClient(ctx, &client, http.MethodPost, "/dom/wait", DomWaitRequest{Selector: selector, State: state, TimeoutMS: timeoutMS}, &out)
 	return out, err
 }
 

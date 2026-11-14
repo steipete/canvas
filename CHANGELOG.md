@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Preserve live or unresponsive sessions, recover dead control sockets, and honor DOM waits over 30 seconds. Thanks @SebTardif.
+- Refuse foreground replacement of a live session and keep its control socket on port-bind failure. Thanks @SebTardif.
+- Build with Go 1.27.4 for patched standard-library security fixes and update WebSocket and system dependencies.
+
 ## 0.2.0 - 2026-10-23
 
 **Highlights:** Fix reachable GO-2026-6809 in certificate verification with Go 1.27.3, stop blocked browser calls promptly, and require macOS 13 or later.

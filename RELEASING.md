@@ -5,7 +5,7 @@ Canvas uses the GoReleaser-based shared release pipeline also used by
 archives for macOS and Linux on arm64 and amd64, with `README.md` and `LICENSE`,
 plus `checksums.txt` and verification manifests. The macOS binaries are signed
 with Peter Steinberger’s Developer ID and notarized. Release builds use the
-Go 1.27.3 toolchain in `go.mod` for patched certificate verification. New binaries require macOS 13 or later.
+Go 1.27.4 toolchain in `go.mod` for patched certificate verification. New binaries require macOS 13 or later.
 
 The release workflow defaults to `dry_run: true`. Dispatch it on `main` with the current version to build, sign, and independently verify without creating a tag or publishing a release. Publishing requires explicitly setting `dry_run: false`.
 
@@ -38,8 +38,8 @@ The release workflow defaults to `dry_run: true`. Dispatch it on `main` with the
    golangci-lint run --timeout=5m
    actionlint
    goreleaser check
-   GOTOOLCHAIN=go1.27.3 go test ./...
-   GOTOOLCHAIN=go1.27.3 goreleaser build --snapshot --clean
+   GOTOOLCHAIN=go1.27.4 go test ./...
+   GOTOOLCHAIN=go1.27.4 goreleaser build --snapshot --clean
    ```
 
 4. Wait for all CI checks on the exact merged `main` commit to pass. Recheck
