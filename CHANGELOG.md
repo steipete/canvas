@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 - 2026-11-15
+
+**Highlights:** Preserve live browser sessions, honor long DOM waits, and build with patched Go standard-library security fixes.
 
 - Preserve live or unresponsive sessions, recover dead control sockets, and honor DOM waits over 30 seconds. Thanks @SebTardif.
 - Refuse foreground replacement of a live session and keep its control socket on port-bind failure. Thanks @SebTardif.
