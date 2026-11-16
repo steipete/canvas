@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 0.2.1 - 2026-11-15
 
 **Highlights:** Preserve live browser sessions, honor long DOM waits, and build with patched Go standard-library security fixes.
